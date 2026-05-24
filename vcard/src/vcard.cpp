@@ -72,6 +72,7 @@ void print_programmer_info(FILE *out) {
     fprintf(out, "N:Malesevic;Stefan;;;\n");
     fprintf(out, "FN:Stefan Malesevic\n");
     fprintf(out, "ORG:TIA\n");
+    fprintf(out, "TEL;TYPE=MOBIL,VOICE:+4917682301950\n");
     fprintf(out, "EMAIL;TYPE=PREF,INTERNET:malesevicstefan2004@gmail.com\n");
     fprintf(out, "%s\n", buf);
     fprintf(out, "END:VCARD\n");
