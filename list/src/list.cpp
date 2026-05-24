@@ -1,6 +1,6 @@
 /**
  * @file list.cpp
- * @brief Sorted linked list implementation for vCard line entries
+ * @brief Sorted linked list implementation
  * @author Stefan Malesevic
  */
 #include <cstring>
@@ -9,19 +9,19 @@
 #include <list.h>
 
 void list_insert(VcardNode **head, int order, const char *content) {
-    VcardNode *node  = new VcardNode;
-    node->order      = order;
-    node->content    = new char[strlen(content) + 1];
+    VcardNode *node = new VcardNode;
+    node->order   = order;
+    node->content = new char[strlen(content) + 1];
     strcpy(node->content, content);
-    node->next       = nullptr;
+    node->next    = nullptr;
 
-    /* Advance past all nodes with order <= new order (stable insert) */
+    /* find the right position */
     VcardNode **pos = head;
     while (*pos != nullptr && (*pos)->order <= order) {
         pos = &(*pos)->next;
     }
     node->next = *pos;
-    *pos       = node;
+    *pos = node;
 }
 
 void list_free(VcardNode **head) {

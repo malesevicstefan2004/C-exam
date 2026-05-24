@@ -1,67 +1,51 @@
 /**
  * @file vcard.h
- * @brief vCard construction, option handling and output functions
+ * @brief VCard class declaration
  * @author Stefan Malesevic
  */
 #ifndef _VCARD_H_
 #define _VCARD_H_
 
 #include <cstdio>
+#include <string>
+#include <vector>
 
 #include <list.h>
 
-/** @brief Maximum number of values allowed per multi-value option */
-#define MAX_MULTI_VALUES 32
-
 /**
- * @brief All command-line options parsed from argv
- *
- * Pointer members point directly into argv (valid for the
- * lifetime of main); no heap allocation is needed here.
+ * @brief Stores all vCard fields and builds the output list
  */
-struct VcardOptions {
-    const char *surname;                      /**< Last name (-s / --surname) */
-    const char *firstnames[MAX_MULTI_VALUES]; /**< First name(s) (-f / --firstname) */
-    int         firstname_count;              /**< Number of first names provided */
-    const char *orgs[MAX_MULTI_VALUES];       /**< Organization(s) (--org) */
-    int         org_count;                    /**< Number of organizations provided */
-    const char *phone_work[MAX_MULTI_VALUES]; /**< Work phone(s) (--phone-work) */
-    int         phone_work_count;             /**< Number of work phones provided */
-    const char *phone_home[MAX_MULTI_VALUES]; /**< Home phone(s) (-p / --phone-home) */
-    int         phone_home_count;             /**< Number of home phones provided */
-    const char *emails[MAX_MULTI_VALUES];     /**< Email address(es) (-m / --email) */
-    int         email_count;                  /**< Number of email addresses provided */
-    const char *output_file;                  /**< Output filename, nullptr means stdout */
-    int         show_help;                    /**< Non-zero if -h / --help was given */
-    int         show_programmer_info;         /**< Non-zero if --programmer-info was given */
+class VCard {
+private:
+    std::string              m_surname;
+    std::vector<std::string> m_firstnames;
+    std::vector<std::string> m_orgs;
+    std::vector<std::string> m_phones_work;
+    std::vector<std::string> m_phones_home;
+    std::vector<std::string> m_emails;
+
+    static std::string join(const std::vector<std::string> &v, const std::string &sep);
+    static std::string revLine();
+
+public:
+    void setSurname(const std::string &s)   { m_surname = s; }
+    void addFirstname(const std::string &f) { m_firstnames.push_back(f); }
+    void addOrg(const std::string &o)       { m_orgs.push_back(o); }
+    void addPhoneWork(const std::string &p) { m_phones_work.push_back(p); }
+    void addPhoneHome(const std::string &p) { m_phones_home.push_back(p); }
+    void addEmail(const std::string &e)     { m_emails.push_back(e); }
+
+    bool hasFirstname() const { return !m_firstnames.empty(); }
+    bool hasSurname()   const { return !m_surname.empty(); }
+
+    /**
+     * @brief Builds the sorted vCard linked list
+     * @return head of the list, must be freed with list_free()
+     */
+    VcardNode *buildList() const;
 };
 
-/**
- * @brief Set all fields of VcardOptions to safe initial values (zero / nullptr)
- * @param opts Pointer to the options struct to initialise
- */
-void vcard_options_init(VcardOptions *opts);
-
-/**
- * @brief Build a sorted linked list of vCard lines from parsed options
- *
- * The caller is responsible for freeing the returned list with list_free().
- *
- * @param opts Pointer to fully parsed options
- * @return Head pointer of the newly created sorted list
- */
-VcardNode *build_vcard(const VcardOptions *opts);
-
-/**
- * @brief Print the programmer identification vCard to a stream
- * @param out Target FILE stream (usually stdout)
- */
 void print_programmer_info(FILE *out);
-
-/**
- * @brief Print usage and option descriptions to stdout
- * @param prog_name Name of the executable (argv[0])
- */
 void print_help(const char *prog_name);
 
 #endif /* _VCARD_H_ */

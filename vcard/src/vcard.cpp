@@ -1,101 +1,71 @@
 /**
  * @file vcard.cpp
- * @brief vCard construction, output and help functions
+ * @brief VCard class implementation
  * @author Stefan Malesevic
  */
 #include <cstdio>
-#include <cstring>
 #include <ctime>
 
 #include <vcard.h>
 #include <list.h>
 
-void vcard_options_init(VcardOptions *opts) {
-    opts->surname              = nullptr;
-    opts->firstname_count      = 0;
-    opts->org_count            = 0;
-    opts->phone_work_count     = 0;
-    opts->phone_home_count     = 0;
-    opts->email_count          = 0;
-    opts->output_file          = nullptr;
-    opts->show_help            = 0;
-    opts->show_programmer_info = 0;
+std::string VCard::join(const std::vector<std::string> &v, const std::string &sep) {
+    std::string result;
+    for (size_t i = 0; i < v.size(); i++) {
+        if (i > 0) result += sep;
+        result += v[i];
+    }
+    return result;
 }
 
-/**
- * @brief Writes current UTC time as a REV: line into buf
- * @param buf  Output buffer
- * @param size Buffer size in bytes
- */
-static void build_rev_line(char *buf, const size_t size) {
-    const time_t    now = time(nullptr);
-    const struct tm *t  = gmtime(&now);
-    strftime(buf, size, "REV:%Y%m%dT%H%M%SZ", t);
+std::string VCard::revLine() {
+    char buf[64];
+    const time_t now = time(nullptr);
+    const struct tm *t = gmtime(&now);
+    strftime(buf, sizeof(buf), "REV:%Y%m%dT%H%M%SZ", t);
+    return std::string(buf);
 }
 
-VcardNode *build_vcard(const VcardOptions *opts) {
+VcardNode *VCard::buildList() const {
     VcardNode *head = nullptr;
-    char        buf[1024];
 
     list_insert(&head, ORDER_HEADER, "BEGIN:VCARD");
     list_insert(&head, ORDER_HEADER, "VERSION:3.0");
 
-    /* N: Surname;FirstName;AdditionalNames;; */
-    snprintf(buf, sizeof(buf), "N:%s;%s;", opts->surname, opts->firstnames[0]);
-    for (int i = 1; i < opts->firstname_count; i++) {
-        if (i > 1) {
-            strncat(buf, ",", sizeof(buf) - strlen(buf) - 1);
-        }
-        strncat(buf, opts->firstnames[i], sizeof(buf) - strlen(buf) - 1);
-    }
-    strncat(buf, ";;", sizeof(buf) - strlen(buf) - 1);
-    list_insert(&head, ORDER_NAME, buf);
+    /* build N field – additional names are comma separated */
+    std::vector<std::string> extra(m_firstnames.begin() + 1, m_firstnames.end());
+    std::string n = "N:" + m_surname + ";" + m_firstnames[0] + ";" + join(extra, ",") + ";;";
+    list_insert(&head, ORDER_NAME, n.c_str());
 
-    /* FN: all names followed by surname */
-    snprintf(buf, sizeof(buf), "FN:%s", opts->firstnames[0]);
-    for (int i = 1; i < opts->firstname_count; i++) {
-        strncat(buf, " ", sizeof(buf) - strlen(buf) - 1);
-        strncat(buf, opts->firstnames[i], sizeof(buf) - strlen(buf) - 1);
-    }
-    strncat(buf, " ", sizeof(buf) - strlen(buf) - 1);
-    strncat(buf, opts->surname, sizeof(buf) - strlen(buf) - 1);
-    list_insert(&head, ORDER_NAME, buf);
+    /* build FN field – all names with spaces, surname at end */
+    std::string fn = "FN:" + join(m_firstnames, " ") + " " + m_surname;
+    list_insert(&head, ORDER_NAME, fn.c_str());
 
-    /* ORG is optional, multiple values are semicolon-separated */
-    if (opts->org_count > 0) {
-        snprintf(buf, sizeof(buf), "ORG:%s", opts->orgs[0]);
-        for (int i = 1; i < opts->org_count; i++) {
-            strncat(buf, ";", sizeof(buf) - strlen(buf) - 1);
-            strncat(buf, opts->orgs[i], sizeof(buf) - strlen(buf) - 1);
-        }
-        list_insert(&head, ORDER_ORG, buf);
+    if (!m_orgs.empty()) {
+        std::string org = "ORG:" + join(m_orgs, ";");
+        list_insert(&head, ORDER_ORG, org.c_str());
     }
 
-    for (int i = 0; i < opts->phone_work_count; i++) {
-        snprintf(buf, sizeof(buf), "TEL;TYPE=WORK,VOICE:%s", opts->phone_work[i]);
-        list_insert(&head, ORDER_TEL, buf);
-    }
+    for (const std::string &p : m_phones_work)
+        list_insert(&head, ORDER_TEL, ("TEL;TYPE=WORK,VOICE:" + p).c_str());
 
-    for (int i = 0; i < opts->phone_home_count; i++) {
-        snprintf(buf, sizeof(buf), "TEL;TYPE=HOME,VOICE:%s", opts->phone_home[i]);
-        list_insert(&head, ORDER_TEL, buf);
-    }
+    for (const std::string &p : m_phones_home)
+        list_insert(&head, ORDER_TEL, ("TEL;TYPE=HOME,VOICE:" + p).c_str());
 
-    for (int i = 0; i < opts->email_count; i++) {
-        snprintf(buf, sizeof(buf), "EMAIL;TYPE=PREF,INTERNET:%s", opts->emails[i]);
-        list_insert(&head, ORDER_EMAIL, buf);
-    }
+    for (const std::string &e : m_emails)
+        list_insert(&head, ORDER_EMAIL, ("EMAIL;TYPE=PREF,INTERNET:" + e).c_str());
 
-    build_rev_line(buf, sizeof(buf));
-    list_insert(&head, ORDER_FOOTER, buf);
+    list_insert(&head, ORDER_FOOTER, revLine().c_str());
     list_insert(&head, ORDER_FOOTER, "END:VCARD");
 
     return head;
 }
 
 void print_programmer_info(FILE *out) {
-    char rev_buf[64];
-    build_rev_line(rev_buf, sizeof(rev_buf));
+    char buf[64];
+    const time_t now = time(nullptr);
+    const struct tm *t = gmtime(&now);
+    strftime(buf, sizeof(buf), "REV:%Y%m%dT%H%M%SZ", t);
 
     fprintf(out, "BEGIN:VCARD\n");
     fprintf(out, "VERSION:3.0\n");
@@ -103,7 +73,7 @@ void print_programmer_info(FILE *out) {
     fprintf(out, "FN:Stefan Malesevic\n");
     fprintf(out, "ORG:TIA\n");
     fprintf(out, "EMAIL;TYPE=PREF,INTERNET:malesevicstefan2004@gmail.com\n");
-    fprintf(out, "%s\n", rev_buf);
+    fprintf(out, "%s\n", buf);
     fprintf(out, "END:VCARD\n");
 }
 
