@@ -1,11 +1,11 @@
 # vCard Generator
 
-A command-line tool that creates vCard 3.0 contact files (`.vcf`).
-Written in C++ for the DHBW TI25 programming exam.
+Command-line tool for creating vCard 3.0 contact files.
+DHBW TI25 programming exam – written in C++.
 
 ## Build
 
-Requires **CMake ≥ 3.10** and a C++17-compatible compiler (GCC / MinGW).
+CMake ≥ 3.10 and GCC (or MinGW) required.
 
 ```bash
 mkdir build
@@ -13,53 +13,36 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 ```
 
-The executable is placed at `build/bin/vcard`.
+Executable: `build/bin/vcard`
 
-## Usage
-
-```
-vcard [OPTIONS] [OUTPUTFILE]
-```
+## Options
 
 | Option | Description |
 |---|---|
 | `-h`, `--help` | Show help and exit |
-| `-f`, `--firstname NAME` | First name (repeat for additional names) |
+| `-f`, `--firstname NAME` | First name (can be repeated for additional names) |
 | `-s`, `--surname NAME` | Last name (**required**) |
-| `--org NAME` | Organization (repeat for multiple; joined with `;`) |
-| `--phone-work NUM` | Work phone number (repeat for multiple) |
-| `-p`, `--phone-home NUM` | Home phone number (repeat for multiple) |
-| `-m`, `--email ADDR` | E-mail address (repeat for multiple) |
-| `--programmer-info` | Print the author's vCard and exit |
+| `--org NAME` | Organization (can be repeated, joined with `;`) |
+| `--phone-work NUM` | Work phone (can be repeated) |
+| `-p`, `--phone-home NUM` | Home phone (can be repeated) |
+| `-m`, `--email ADDR` | E-mail address (can be repeated) |
+| `--programmer-info` | Print author vCard and exit |
 
-`OUTPUTFILE` is optional. When omitted the vCard is written to **stdout**.
-
-Both `-f`/`--firstname` and `-s`/`--surname` are **mandatory**.
+`OUTPUTFILE` can be added at the end to write to a file instead of stdout.
 
 ## Examples
 
-**Print to stdout:**
 ```bash
+# basic
 vcard -f Thomas -s Staudacher
-```
 
-**Multiple first names:**
-```bash
-vcard -f Erika -f Elisabeth -f Maria -s Mustermann --org DHBW
-```
+# multiple first names
+vcard -f Erika -f Elisabeth -f Maria -s Mustermann
 
-**All fields, save to file:**
-```bash
-vcard -f Thomas -s Staudacher \
-      --org TIA \
-      --phone-work +49754177961003 \
-      -p +49754144640 \
-      -m thomas@example.com \
-      contact.vcf
-```
+# all fields, output to file
+vcard -f Thomas -s Staudacher --org TIA --phone-work +49754177961003 -p +49754144640 -m t@example.com contact.vcf
 
-**Programmer identification:**
-```bash
+# author info
 vcard --programmer-info
 ```
 
@@ -82,35 +65,12 @@ END:VCARD
 
 ```
 .
-├── CMakeLists.txt          Top-level build configuration
-├── main.cpp                Entry point, option parsing (getopt_long)
+├── CMakeLists.txt
+├── main.cpp
 ├── list/
-│   ├── CMakeLists.txt
-│   ├── include/list.h      Linked-list declarations (VcardNode, VcardOrder)
-│   └── src/list.cpp        Linked-list implementation
+│   ├── include/list.h
+│   └── src/list.cpp
 └── vcard/
-    ├── CMakeLists.txt
-    ├── include/vcard.h     vCard builder declarations
-    └── src/vcard.cpp       vCard builder, help, programmer-info
+    ├── include/vcard.h
+    └── src/vcard.cpp
 ```
-
-## Requirements Coverage
-
-| Requirement | Description | Status |
-|---|---|---|
-| ReqFunc01/02 | Help text via `-h` / `--help` | ✓ |
-| ReqFunc03 | `--programmer-info` vCard output | ✓ |
-| ReqFunc04 | REV field with ISO 8601 timestamp | ✓ |
-| ReqFunc05–08 | `-f`/`--firstname`, `-s`/`--surname`, mandatory check | ✓ |
-| ReqFunc09 | `--org` multi-value, semicolon-joined | ✓ |
-| ReqFunc10/11 | `--phone-work`, `-p`/`--phone-home`, multiple | ✓ |
-| ReqFunc12 | `-m`/`--email`, multiple | ✓ |
-| ReqFunc13–19 | Custom sorted linked list with heap memory | ✓ |
-| ReqFunc20/21 | List code in `list.h` / `list.cpp` | ✓ |
-| ReqFunc22 | Elements sorted by field order in list | ✓ |
-| ReqFunc23/24 | Output to file or stdout | ✓ |
-| ReqNonFunc01–04 | GNU g++, WSL Linux, CMake, binary named `vcard` | ✓ |
-| ReqNonFunc05 | `getopt` / `getopt_long` for option parsing | ✓ |
-| ReqNonFunc06/07 | Headers/sources in separate dirs, include via path | ✓ |
-| ReqNonFunc08 | `#ifndef` header guards (MinGW + GNU compatible) | ✓ |
-| ReqNonFunc09 | All heap memory freed after use | ✓ |
